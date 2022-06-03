@@ -1,33 +1,17 @@
 <?php
 // 
-// retval: 0:正常 1:パラメーター無し 2:APIエラー 9:想定外のエラー
-function execOAuth2($user, $passwd)
+// retval: 0:正常 1:パラメーター無し 2:APIエラー 3:初回 8:認証切れ 9:想定外のエラー
+function createData($params, &$ret_message)
 {
-    if (!empty($_SESSION['TOKEN'])) {
-        echo "<br>token 取得済み";
-        return 0;
-    }
-    if (empty($user)) {
-        return 1;
-    }
-    if (empty($passwd)) {
-        return 1;
-    }
+    $token = $_SESSION['TOKEN'];
 
-    $url = "http://exment.localapp/admin/oauth/token";
-    $params = array(
-        "grant_type" => "password",
-        "client_id" => "884e4160-dbfe-11ec-9706-6f543a6e94ba",
-        "client_secret" => "BZ4vMvJ3JwG8SwqnnUkdGYnrphVeRf284WtLTC59",
-        "username" => "${user}",
-        "password" => "${passwd}",
-        "scope" => "value_read value_write"        
-    );
+    $url = "http://exment.localapp/admin/api/data/test_req";
     $params = json_encode($params); // json化
     $header = array(
         "Content-Length: ".strlen($params),
         "Accept: application/json",
         "Content-Type: application/json",
+        "Authorization:" . $token["token_type"] . " " . $token["access_token"]
     );
 
     $curl = curl_init($url);
@@ -57,15 +41,19 @@ function execOAuth2($user, $passwd)
     $header = substr($response, 0, $header_size); // header切出
     $header = array_filter(explode("\r\n",$header));
     $ret = 0;
-    print_r($header); // header配列
-    if ($code == 200) {
+    if ($code == 200 or $code == 201) {
         $res_json_str = substr($response, $header_size); // body切出
         $arr = json_decode($res_json_str, true);
-        session_start();
-        $_SESSION['TOKEN'] = $arr;
+        $ret_message = '登録が正常終了しました。';
+    }
+    elseif ($code == 401) {
+        echo "認証切れです！";
+        //認証切れ
+        unset($_SESSION["TOKEN"]);
+        $ret = 8;
     }
     else {
-        echo "<br>http status" . $code;
+        $ret_message = "APIエラーです。<br>http status" . $code;
         $ret = 2;
     }
     curl_close($curl);

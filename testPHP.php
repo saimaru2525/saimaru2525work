@@ -3,7 +3,7 @@
 <head>
 	<meta charser="UTF-8" />
 	<script type="text/javascript" src="formcheck.js"></script>
-	<title>APIのテスト</title>
+	<title>APIのテスト（認証）</title>
 </head>
 <body>
 <?php
@@ -21,7 +21,9 @@ if (!empty($_POST['passwd'])){
     $passwd=htmlspecialchars($_POST['passwd']);
 }
 if (!empty($user)){
-    $ret = execOAuth2($user, $passwd, $json);
+    if (execOAuth2($user, $passwd, $json) == 0) {
+        header('Location: /shibaTest/testDataList.php');
+    }
 }
 
 ?>
